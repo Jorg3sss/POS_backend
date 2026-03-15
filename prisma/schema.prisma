@@ -1,24 +1,71 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Product {
+  id              Int      @id @default(autoincrement())
+  sku             String   @unique // Para escaneo rápido
+  nombre          String
+  precio_venta    Decimal  @db.Decimal(10, 2)
+  precio_costo    Decimal  @db.Decimal(10, 2) // Para calcular utilidad real
+  stock           Int      @default(0)
+  
+  distribuidorId  Int
+  distribuidor    Distributor @relation(fields: [distribuidorId], references: [id])
+  sales           SaleDetail[]
+}
+
+model Sale {
+  id            Int          @id @default(autoincrement())
+  total         Decimal      @db.Decimal(10, 2)
+  tipo_pago     String       // "EFECTIVO" | "TARJETA"
+  pago_con      Decimal?     @db.Decimal(10, 2)
+  cambio        Decimal?     @db.Decimal(10, 2)
+  estado        String       @default("COMPLETADA") // Importante para cancelaciones
+  createdAt     DateTime     @default(now())
+  
+  userId        Int
+  user          User         @relation(fields: [userId], references: [id])
+  details       SaleDetail[]
+}
+
+model SaleDetail {
+  id              Int     @id @default(autoincrement())
+  saleId          Int
+  sale            Sale    @relation(fields: [saleId], references: [id])
+  
+  productId       Int
+  product         Product @relation(fields: [productId], references: [id])
+  
+  cantidad        Int
+  precio_unitario Decimal @db.Decimal(10, 2) // PRECIO CONGELADO AL MOMENTO DE VENTA
+}
+
+model Expense { // Para tu Pantalla 6
+  id          Int      @id @default(autoincrement())
+  monto       Decimal  @db.Decimal(10, 2)
+  descripcion String
+  fecha       DateTime @default(now())
+}
+
+// Añade esto para que el esquema sea válido
+model User {
   id        Int      @id @default(autoincrement())
-  name      String
-  qrCode    String   @unique
-  price     Int      // Guardamos centavos (ej: 1050 para $10.50)
-  stock     Int      @default(0)
-  createdAt DateTime @default(now())
+  nombre    String
+  correo    String   @unique
+  contra    String
+  rol       String   // "ADMIN", "GERENTE", "VENDEDOR"
+  sales     Sale[]
+}
+
+model Distributor {
+  id            Int       @id @default(autoincrement())
+  nombre        String
+  diaDeSurtir   String
+  tel           String
+  products      Product[]
 }
