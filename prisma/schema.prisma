@@ -17,6 +17,7 @@ model Product {
   distribuidorId  Int
   distribuidor    Distributor @relation(fields: [distribuidorId], references: [id])
   sales           SaleDetail[]
+  imagenUrl     String?
 }
 
 model Sale {
